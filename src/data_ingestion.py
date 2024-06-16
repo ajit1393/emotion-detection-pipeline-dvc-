@@ -6,21 +6,41 @@ import yaml
 import os
 from sklearn.model_selection import train_test_split
 
-test_size= yaml.safe_load(open('params.yaml','r'))['data_ingestion']['test_size']
+def load_params(params_path: str) -> float:
+    test_size= yaml.safe_load(open('params.yaml','r'))['data_ingestion']['test_size']
+    return test_size
 
-df = pd.read_csv('https://raw.githubusercontent.com/campusx-official/jupyter-masterclass/main/tweet_emotions.csv')
+def read_data(url: str) -> pd.DataFrame:
+    df = pd.read_csv(url)
+    return df
 
-df.drop(columns=['tweet_id'],inplace=True)
+def processed_data(df: pd.DataFrame) -> pd.DataFrame :
+    df.drop(columns=['tweet_id'],inplace=True)
+    
+    final_df = df[df['sentiment'].isin(['happiness','sadness'])]
+    final_df['sentiment'].replace({'happiness':1, 'sadness':0},inplace=True)
+    
+    return final_df
 
-final_df = df[df['sentiment'].isin(['happiness','sadness'])]
+def save_data(data_path: str,train_data:pd.DataFrame,test_data:pd.DataFrame)-> None:
+    os.makedirs(data_path)
 
-final_df['sentiment'].replace({'happiness':1, 'sadness':0},inplace=True)
+    train_data.to_csv(os.path.join(data_path,"train.csv"))
+    test_data.to_csv(os.path.join(data_path,"test.csv"))    
+    
+def main() -> None:
 
-train_data, test_data = train_test_split(final_df, test_size=test_size, random_state=42)
+    test_size= load_params('params.yaml')
+    df= read_data('https://raw.githubusercontent.com/campusx-official/jupyter-masterclass/main/tweet_emotions.csv')
 
-data_path=os.path.join("data","raw")
+    final_df= processed_data(df)    
+    
+    train_data, test_data = train_test_split(final_df, test_size=test_size, random_state=42)
+    
+    data_path=os.path.join("data","raw")
 
-os.makedirs(data_path)
+    save_data(data_path,train_data,test_data)
 
-train_data.to_csv(os.path.join(data_path,"train.csv"))
-test_data.to_csv(os.path.join(data_path,"test.csv"))
+if __name__=="__main__":
+    
+    main()
